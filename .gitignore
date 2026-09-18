@@ -17,9 +17,14 @@ docs/*
 !docs/chatgpt/
 !docs/submission/
 .idea/
-Documents/
+/Documents/
 AI Responses/
 manual response/
+node_modules/
+.next/
+data/
+.env.local
+.env*.local
 # Anchored to the repo root on purpose: an unanchored `build-page-schemas/` also matched
 # `.claude/skills/build-page-schemas/`, which left 13 of that skill's 16 reference files
 # untracked while SKILL.md and two references were committed — the skill's rules were
