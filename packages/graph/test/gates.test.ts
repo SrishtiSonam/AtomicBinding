@@ -142,6 +142,31 @@ describe("gate 4 · schema validity", () => {
     const report = runGates(graph, registry);
     expect(report.findings.some((f) => f.gate === "schema-validity")).toBe(true);
   });
+
+  it("fails a document with an unregistered type in CMS store", async () => {
+    const id = randomUUID();
+    store.save({
+      id,
+      type: "deprecatedPageType",
+      route: "/deprecated",
+      data: { title: "Old Page" },
+      schemaVer: 1,
+      updatedBy: BY,
+      refs: [],
+    });
+    store.publish(id, BY);
+
+    const graph = await build();
+    const node = graph.byId.get(id);
+    expect(node).toBeDefined();
+    expect(node?.violations).toHaveLength(1);
+    expect(node?.violations[0]?.message).toContain("no document type 'deprecatedPageType' is registered");
+
+    const report = runGates(graph, registry);
+    const finding = report.findings.find((f) => f.gate === "schema-validity");
+    expect(finding?.message).toContain("no document type 'deprecatedPageType' is registered");
+    expect(report.ok).toBe(false);
+  });
 });
 
 describe("gates 5 and 6 · bindings", () => {

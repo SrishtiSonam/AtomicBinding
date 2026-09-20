@@ -1,7 +1,12 @@
 __pycache__/
 *.pyc
 *.pyo
+node_modules/
+.next/
 .env
+.env*.local
+*.local
+dist/
 db.sqlite3
 staticfiles/
 .DS_Store
