@@ -4,7 +4,7 @@
 // document at a time. That is the difference between a migration and a data loss event.
 
 import { openSqliteStore } from "@imprint/store";
-import { validateDocument } from "@imprint/schema";
+import { extractRefs, routeFor, validateDocument } from "@imprint/schema";
 import { migrationsFor, MIGRATIONS } from "../../../../migrations/index";
 import { registry } from "~/schema";
 import { amber, bold, dim, green, heading, red, rule } from "../format";
@@ -61,7 +61,11 @@ export async function migrate(argv: string[]): Promise<number> {
         def.name,
         (data) => chain.reduce<Record<string, unknown>>((current, step) => step.up(current), data),
         target,
-        "migration"
+        "migration",
+        {
+          computeRefs: (data) => extractRefs(def.fields, data, registry),
+          computeRoute: (data) => (def.route ? routeFor(def, data) : null),
+        }
       );
       console.log(green(`    applied to ${changes.length} document(s), each with a revertible version row`));
       touched += changes.length;

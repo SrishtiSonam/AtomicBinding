@@ -16,13 +16,34 @@ export function cmsAdapter(store: Store, registry: Registry): Adapter {
 
       for (const row of rows) {
         const def = registry.documents[row.type];
+        const data = (row.data && typeof row.data === "object" ? row.data : {}) as Record<string, unknown>;
+
         if (!def) {
-          // A type was removed from the schema while rows still name it. Surfaced by
-          // gate 4 rather than crashing the build here.
+          // A type was removed from the schema while rows still name it.
+          // Emit a fallback node so buildGraph can attach schema violations for Gate 4.
+          const title = typeof data.title === "string" ? data.title : "(untitled)";
+          const summary = typeof data.summary === "string" ? data.summary : "";
+
+          nodes.push({
+            id: row.id,
+            route: row.route,
+            source: "cms",
+            type: row.type,
+            section: "marketing",
+            title,
+            summary,
+            data,
+            blocks: Array.isArray(data.body) ? (data.body as Node["blocks"]) : [],
+            refs: [],
+            outboundLinks: [],
+            searchText: searchTextOf(data),
+            updatedAt: row.updatedAt,
+            draft: row.variant === "draft",
+            violations: [],
+            schemaVer: row.schemaVer,
+          });
           continue;
         }
-
-        const data = row.data;
         const title = String(data[def.titleField] ?? "(untitled)");
         const summary = typeof data.summary === "string" ? data.summary : "";
 

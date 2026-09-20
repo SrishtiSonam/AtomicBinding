@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/SrishtiSonam/AtomicBinding/blob/main/CONTRIBUTING.md
+    about: Read this before claiming an issue or opening a PR.

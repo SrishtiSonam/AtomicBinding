@@ -162,4 +162,63 @@ describe("migration rewrites", () => {
     expect(store.get("a", "draft")!.schemaVer).toBe(2);
     expect(store.versions("a").some((v) => v.schemaVer === 2)).toBe(true);
   });
+
+  it("re-indexes document_ref records and updates inbound index during rewrite", () => {
+    store.save({
+      id: "doc-1",
+      type: "marketingPage",
+      route: "/page-1",
+      data: { targetRef: "old-target" },
+      schemaVer: 1,
+      updatedBy: BY,
+      refs: [{ _ref: "old-target", _source: "cms", path: "targetRef", to: "category" }],
+    });
+    store.publish("doc-1", BY);
+
+    expect(store.inbound("old-target")).toHaveLength(1);
+    expect(store.inbound("new-target")).toHaveLength(0);
+
+    store.rewrite(
+      "marketingPage",
+      (data) => ({ targetRef: "new-target" }),
+      2,
+      "migration",
+      {
+        computeRefs: (data) => [
+          { _ref: String(data.targetRef), _source: "cms", path: "targetRef", to: "category" },
+        ],
+      }
+    );
+
+    expect(store.inbound("old-target")).toHaveLength(0);
+    expect(store.inbound("new-target")).toHaveLength(1);
+    expect(store.inbound("new-target")[0]!.id).toBe("doc-1");
+  });
+
+  it("recomputes derived routes during rewrite when computeRoute is provided", () => {
+    store.save({
+      id: "doc-2",
+      type: "marketingPage",
+      route: "/old-slug",
+      data: { slug: "new-slug" },
+      schemaVer: 1,
+      updatedBy: BY,
+    });
+    store.publish("doc-2", BY);
+
+    store.rewrite(
+      "marketingPage",
+      (data) => ({ slug: "brand-new-slug" }),
+      2,
+      "migration",
+      {
+        computeRoute: (data) => `/${data.slug}`,
+      }
+    );
+
+    expect(store.get("doc-2", "draft")!.route).toBe("/brand-new-slug");
+    expect(store.get("doc-2", "published")!.route).toBe("/brand-new-slug");
+    expect(store.byRoute("/brand-new-slug", "published")?.id).toBe("doc-2");
+    expect(store.byRoute("/old-slug", "published")).toBeNull();
+  });
 });
