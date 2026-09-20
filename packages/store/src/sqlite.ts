@@ -285,7 +285,7 @@ export function openSqliteStore(path: string): Store {
       return rows.map(hydrate);
     },
 
-    rewrite(type, apply, to, by) {
+    rewrite(type, apply, to, by, options) {
       return tx(() => {
         const rows = db
           .prepare("SELECT * FROM document WHERE type = ? ORDER BY id, variant")
@@ -297,11 +297,26 @@ export function openSqliteStore(path: string): Store {
           const before = JSON.parse(row.data) as Record<string, unknown>;
           const after = apply(structuredClone(before));
           const encoded = JSON.stringify(after);
-          if (encoded === row.data && Number(row.schema_ver) === to) continue;
+
+          let route = row.route;
+          if (options?.computeRoute) {
+            try {
+              route = options.computeRoute(after);
+            } catch {
+              route = null;
+            }
+          }
+
+          if (encoded === row.data && Number(row.schema_ver) === to && route === row.route) continue;
 
           db.prepare(
-            "UPDATE document SET data = ?, schema_ver = ?, updated_at = ?, updated_by = ? WHERE id = ? AND variant = ?"
-          ).run(encoded, to, at, by, row.id, row.variant);
+            "UPDATE document SET data = ?, route = ?, schema_ver = ?, updated_at = ?, updated_by = ? WHERE id = ? AND variant = ?"
+          ).run(encoded, route, to, at, by, row.id, row.variant);
+
+          if (options?.computeRefs) {
+            const refs = options.computeRefs(after);
+            writeRefs(row.id, row.variant as Variant, refs);
+          }
 
           if (row.variant === "draft") {
             const version = Number(row.version) + 1;

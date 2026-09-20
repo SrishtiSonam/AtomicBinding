@@ -6,6 +6,7 @@ import { DDL } from "@imprint/store";
  *  makes schema.sql a second copy — so assert the two never diverge. */
 const normalise = (sql: string) =>
   sql
+    .replace(/\r\n/g, "\n")
     .split("\n")
     .map((line) => line.replace(/--.*$/, "").trim())
     .filter(Boolean)

@@ -80,6 +80,13 @@ export class RouteConflictError extends Error {
   }
 }
 
+export interface RewriteOptions {
+  /** Optional function to compute/derive refs for the rewritten document */
+  computeRefs?: (data: Record<string, unknown>) => SaveInput["refs"];
+  /** Optional function to compute the new route for the rewritten document */
+  computeRoute?: (data: Record<string, unknown>) => string | null;
+}
+
 export interface Store {
   get(id: string, variant: Variant): StoredDocument | null;
   byRoute(route: string, variant: Variant): StoredDocument | null;
@@ -103,7 +110,8 @@ export interface Store {
     type: string,
     apply: (data: Record<string, unknown>) => Record<string, unknown>,
     to: number,
-    by: string
+    by: string,
+    options?: RewriteOptions
   ): { id: string; before: Record<string, unknown>; after: Record<string, unknown> }[];
 
   close(): void;
