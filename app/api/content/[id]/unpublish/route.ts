@@ -17,7 +17,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Who links here? Answered from the index, so unpublishing is a decision rather than
   // an accident. The caller may proceed with ?force=1.
-  const holders = published.route ? store.inbound(published.route) : [];
+  const holdersByRoute = published.route ? store.inbound(published.route) : [];
+  const holdersById = store.inbound(id);
+  const holders = [...new Map(
+    [...holdersByRoute, ...holdersById].map((holder) => [holder.id, holder])
+  ).values()];
   const force = new URL(request.url).searchParams.get("force") === "1";
 
   if (holders.length > 0 && !force) {
