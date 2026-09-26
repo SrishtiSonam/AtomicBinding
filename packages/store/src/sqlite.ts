@@ -242,7 +242,15 @@ export function openSqliteStore(path: string): Store {
     versions(id): DocumentVersion[] {
       const rows = db
         .prepare("SELECT * FROM document_version WHERE id = ? ORDER BY version DESC")
-        .all(id) as unknown as { id: string; version: number; data: string; schema_ver: number; created_at: string; created_by: string }[];
+        .all(id) as unknown as {
+          id: string;
+          version: number;
+          data: string;
+          schema_ver: number;
+          created_at: string;
+          created_by: string;
+        }[];
+
       return rows.map((row) => ({
         id: row.id,
         version: Number(row.version),
@@ -253,26 +261,29 @@ export function openSqliteStore(path: string): Store {
       }));
     },
 
-    revert(id, version, by) {
-      const snapshot = db
+    version(id, version): DocumentVersion | null {
+      const row = db
         .prepare("SELECT * FROM document_version WHERE id = ? AND version = ?")
-        .get(id, version) as unknown as { data: string; schema_ver: number } | undefined;
-      if (!snapshot) throw new Error(`${id} has no version ${version}`);
+        .get(id, version) as unknown as {
+          id: string;
+          version: number;
+          data: string;
+          schema_ver: number;
+          created_at: string;
+          created_by: string;
+        } | undefined;
 
-      const draft = store.get(id, "draft");
-      if (!draft) throw new Error(`${id} has no draft to revert`);
+      if (!row) return null;
 
-      return store.save({
-        id,
-        type: draft.type,
-        route: draft.route,
-        data: JSON.parse(snapshot.data) as Record<string, unknown>,
-        schemaVer: Number(snapshot.schema_ver),
-        updatedBy: by,
-        expectedVersion: draft.version,
-      });
+      return {
+        id: row.id,
+        version: Number(row.version),
+        data: JSON.parse(row.data) as Record<string, unknown>,
+        schemaVer: Number(row.schema_ver),
+        createdAt: row.created_at,
+        createdBy: row.created_by,
+      };
     },
-
     inbound(target) {
       const rows = db
         .prepare(

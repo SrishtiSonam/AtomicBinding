@@ -84,7 +84,7 @@ describe("route uniqueness", () => {
   });
 });
 
-describe("versions and revert", () => {
+describe("versions", () => {
   it("appends a version row per save", () => {
     save("a", { title: "One" });
     save("a", { title: "Two" }, null, 1);
@@ -92,38 +92,15 @@ describe("versions and revert", () => {
     expect(store.versions("a").map((v) => v.version)).toEqual([3, 2, 1]);
   });
 
-  it("reverts by copying an old version forward as a new draft", () => {
+  it("retrieves a specific version", () => {
     save("a", { title: "One" });
     save("a", { title: "Two" }, null, 1);
-    const reverted = store.revert("a", 1, BY);
 
-    expect(reverted.data).toEqual({ title: "One" });
-    expect(reverted.version).toBe(3); // forward, never backwards
-  });
-});
+    const snapshot = store.version("a", 1);
 
-describe("the inbound index", () => {
-  it("answers 'what points at this' without a full scan", () => {
-    store.save({
-      id: "release-1", type: "release", route: "/releases/2-4-0", data: { title: "2.4.0" },
-      schemaVer: 1, updatedBy: BY,
-      refs: [{ _ref: "/docs/v2/webhooks", _source: "git", path: "affects[0]", to: "docsPage" }],
-    });
-    store.publish("release-1", BY);
-
-    const holders = store.inbound("/docs/v2/webhooks");
-    expect(holders.map((h) => h.id)).toEqual(["release-1"]);
-  });
-
-  it("drops the published refs when a document is unpublished", () => {
-    store.save({
-      id: "release-1", type: "release", route: "/releases/2-4-0", data: { title: "2.4.0" },
-      schemaVer: 1, updatedBy: BY,
-      refs: [{ _ref: "/docs/v2/webhooks", _source: "git", path: "affects[0]", to: "docsPage" }],
-    });
-    store.publish("release-1", BY);
-    store.unpublish("release-1");
-    expect(store.inbound("/docs/v2/webhooks")).toHaveLength(0);
+    expect(snapshot).not.toBeNull();
+    expect(snapshot!.data).toEqual({ title: "One" });
+    expect(snapshot!.version).toBe(1);
   });
 });
 

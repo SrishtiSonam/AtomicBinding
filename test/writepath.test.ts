@@ -62,6 +62,55 @@ describe("the shared write path", () => {
     });
     expect(result.document!.schemaVer).toBe(2);
   });
+
+  it("rebuilds the route and refs when writing an older version forward", () => {
+    const first = writeDraft(store, {
+      id: "release-1",
+      type: "release",
+      by: "test",
+      data: {
+        title: "2.4.0",
+        version: "first",
+        releasedAt: "2026-08-27T09:00:00.000Z",
+        affects: [{ _ref: "/docs/first", _source: "git" }],
+      },
+    });
+
+    expect(first.ok).toBe(true);
+    expect(first.document!.version).toBe(1);
+
+    const second = writeDraft(store, {
+      id: "release-1",
+      type: "release",
+      by: "test",
+      expectedVersion: first.document!.version,
+      data: {
+        title: "2.4.0",
+        version: "second",
+        releasedAt: "2026-08-27T09:00:00.000Z",
+        affects: [{ _ref: "/docs/second", _source: "git" }],
+      },
+    });
+
+    expect(second.ok).toBe(true);
+    expect(second.document!.version).toBe(2);
+    expect(second.document!.route).toBe("/releases/second");
+
+    const snapshot = store.version("release-1", 1);
+    expect(snapshot).not.toBeNull();
+
+    const reverted = writeDraft(store, {
+      id: "release-1",
+      type: "release",
+      by: "test",
+      expectedVersion: second.document!.version,
+      data: snapshot!.data,
+    });
+
+    expect(reverted.ok).toBe(true);
+    expect(reverted.document!.version).toBe(3);
+    expect(reverted.document!.route).toBe("/releases/first");
+  });
 });
 
 describe("the write and draft-read guard", () => {

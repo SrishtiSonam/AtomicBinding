@@ -100,7 +100,7 @@ export interface Store {
   remove(id: string): void;
 
   versions(id: string): DocumentVersion[];
-  revert(id: string, version: number, by: string): StoredDocument;
+  version(id: string, version: number): DocumentVersion | null;
 
   /** Documents whose refs point at `target`. Powers the unpublish guard. */
   inbound(target: string): StoredDocument[];
