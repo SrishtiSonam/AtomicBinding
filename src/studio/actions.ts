@@ -93,7 +93,12 @@ export async function unpublishDocument(id: string, force = false): Promise<Acti
   const published = store.get(id, "published");
   if (!published) return { ok: false, error: "It is not published." };
 
-  const holders = published.route ? store.inbound(published.route) : [];
+  const holdersByRoute = published.route ? store.inbound(published.route) : [];
+  const holdersById = store.inbound(id);
+  const holders = [...new Map(
+    [...holdersByRoute, ...holdersById].map((holder) => [holder.id, holder])
+  ).values()];
+
   if (holders.length && !force) {
     return {
       ok: false,
