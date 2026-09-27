@@ -116,10 +116,49 @@ export async function unpublishDocument(id: string, force = false): Promise<Acti
 
 export async function revertDocument(id: string, version: number): Promise<ActionResult> {
   try {
-    const draft = openStore().revert(id, version, actor());
+    const store = openStore();
+    const snapshot = store.version(id, version);
+
+    if (!snapshot) {
+      return { ok: false, error: `${id} has no version ${version}` };
+    }
+
+    const draft = store.get(id, "draft");
+    if (!draft) {
+      return { ok: false, error: `${id} has no draft to revert` };
+    }
+
+    const result = writeDraft(store, {
+      id,
+      type: draft.type,
+      data: snapshot.data,
+      by: actor(),
+      expectedVersion: draft.version,
+    });
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: "This does not satisfy the schema yet.",
+        violations: result.violations,
+      };
+    }
+
     revalidatePath("/studio", "layout");
-    return { ok: true, id, version: draft.version };
+    return { ok: true, id, version: result.document!.version };
   } catch (error) {
+    if (error instanceof ConflictError) {
+      return {
+        ok: false,
+        error: error.message,
+        conflict: {
+          expected: error.expected,
+          actual: error.actual,
+          updatedBy: error.updatedBy,
+        },
+      };
+    }
+
     return { ok: false, error: (error as Error).message };
   }
 }
