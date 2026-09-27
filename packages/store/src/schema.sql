@@ -19,6 +19,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS doc_route_published
   WHERE variant = 'published' AND route IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS doc_type_variant ON document (type, variant);
+CREATE INDEX IF NOT EXISTS doc_list_sort ON document (variant, type, updated_at DESC, id ASC);
+CREATE INDEX IF NOT EXISTS doc_list_sort_all ON document (variant, updated_at DESC, id ASC);
 
 CREATE TABLE IF NOT EXISTS document_version (
   id          TEXT    NOT NULL,
